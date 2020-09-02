@@ -1,0 +1,12 @@
+[submodule "TeensyCode/lib/TeensyOS"]
+	path = TeensyCode/lib/TeensyOS
+	url = git@github.com:william-redenbaugh/TeensyOS.git
+[submodule "TeensyCode/lib/SmartMatrix"]
+	path = TeensyCode/lib/SmartMatrix
+	url = git@github.com:pixelmatix/SmartMatrix.git
+[submodule "TeensyCode/lib/FlexIO_t4"]
+	path = TeensyCode/lib/FlexIO_t4
+	url = git@github.com:KurtE/FlexIO_t4.git
+[submodule "TeensyCode/lib/nanopb"]
+	path = TeensyCode/lib/nanopb
+	url = git@github.com:william-redenbaugh/nanopb.git
