@@ -1,5 +1,6 @@
 #include <Arduino.h> 
 #include "OS/OSThreadKernel.h"
+#include "APA102.hpp"
 
 void setup(void){
   os_init();
