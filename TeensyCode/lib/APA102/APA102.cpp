@@ -5,6 +5,10 @@
 */
 static SPISettings strip_default_settings(4000000, MSBFIRST, SPI_MODE1);
 
+/*!
+*   @brief Sets up our microcontroller to interface with our RGB LEDs
+*   @param uint32_t num_pixels(how many pixels are we using?)
+*/
 void OSStripSPI::begin(uint32_t num_pixels){
     // Setting up our SPI device settings. 
     SPI.begin(); 
@@ -29,6 +33,11 @@ void OSStripSPI::begin(uint32_t num_pixels){
     this->spi_device = &SPI; 
 }
 
+/*!
+*   @brief Sets up our microcontroller to interface with our RGB LEDs
+*   @param uint32_t num_pixels(how many pixels are we using?)
+*   @param SPIClass *spi pointer object that let's program know which spi target we are using 
+*/
 void OSStripSPI::begin(uint32_t num_pixels, SPIClass *spi){
     // Setting up our SPI device settings. 
     SPI.begin(); 
@@ -54,12 +63,23 @@ void OSStripSPI::begin(uint32_t num_pixels, SPIClass *spi){
     this->spi_device = spi;  
 }
 
+/*!
+*   @brief Allows us to write an rgb value to a pixel. 
+*   @param uint32_t pixel(which pixel are we targeting?)
+*   @param uint8_t r(red)
+*   @param uint8_t g(green)
+*   @param uint8_t b(blue)
+*/
 void OSStripSPI::set_pixel(uint32_t pixel, uint8_t r, uint8_t g, uint8_t b){
     this->drawing_mem[4 + 4 * pixel] = b;
     this->drawing_mem[5 + 4 * pixel] = g;
     this->drawing_mem[6 + 4 * pixel] = r;
 }
 
+/*!
+*   @brief  Allows us to set the global brightness value of all of our pixels
+*   @param uint8_t brightness(up to 32)
+*/
 void OSStripSPI::set_global_brightness(uint8_t brightness){
     if(brightness > 31)
         brightness = 31; 
@@ -72,6 +92,10 @@ void OSStripSPI::set_global_brightness(uint8_t brightness){
     }
 }
 
+/*!
+*   @brief Sends the LED buffer over the SPI interface VIA DMA
+*   @note Also incorporates OS system calls so that we aren't overloading the SPI interface. 
+*/
 void OSStripSPI::update(void){
     EventResponder event_responder; 
     this->spi_device->transfer(drawing_mem, NULL, this->mem_buff_size, event_responder); 
