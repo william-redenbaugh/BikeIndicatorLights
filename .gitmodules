@@ -10,3 +10,6 @@
 [submodule "TeensyCode/lib/nanopb"]
 	path = TeensyCode/lib/nanopb
 	url = git@github.com:william-redenbaugh/nanopb.git
+[submodule "TeensyCode/lib/--force"]
+	path = TeensyCode/lib/--force
+	url = git@github.com:KurtE/FlexIO_t4.git
