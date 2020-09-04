@@ -14,7 +14,7 @@ const int matrix_panel_height = 32; // height of the individual panels making up
 uint8_t matrix_brightness = 100; // range 0-255
 const uint8_t latches_per_row = 8; // controls the color depth per pixel; value from 1 to 16; 8 is 24bit truecolor
 uint16_t refresh_rate_hz = 150; // frames per second. With 12bit color depth, works up to 580 FPS at 600 MHz (720 FPS at 816 MHz)
-const uint8_t dma_buffer_num_rows = 8; // number of rows of pixel data in rowDataBuffer; minimum 2; increasing helps with stability
+const uint8_t dma_buffer_num_rows = 4; // number of rows of pixel data in rowDataBuffer; minimum 2; increasing helps with stability
 
 #define LATCH_TIMER_PULSE_WIDTH_NS  80  // 20 is minimum working value, don't exceed 160 to avoid interference between latch and data transfer
 #define LATCH_TO_CLK_DELAY_NS       400  // max delay from rising edge of latch pulse to first pixel clock
