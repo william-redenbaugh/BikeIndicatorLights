@@ -11,15 +11,7 @@
 // DMA peripheral library
 #include "DMAChannel.h"
 
-typedef struct rgb24 {
-    rgb24() : rgb24(0,0,0) {}
-    rgb24(uint8_t r, uint8_t g, uint8_t b) {
-        red = r; green = g; blue = b;
-    }
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
-} rgb24;
+#include "hsv_rgb_conv.hpp"
 
 typedef struct rgb48 {
     rgb48() : rgb48(0,0,0) {}
@@ -38,7 +30,7 @@ static const int matrix_panel_height = 32;        // Height of the individual pa
 // Call this to start matrix drivers. 
 extern void setup_matrix(void); 
 // Pointer to matrix array. 
-extern inline rgb24* get_matrix_ptr(void); 
+extern rgb24* get_matrix_ptr(void); 
 // Allows us to change matrix. 
-extern inline void adjust_matrix_brigthness(uint8_t brightness); 
+extern void adjust_matrix_brightness(uint8_t brightness); 
 #endif 

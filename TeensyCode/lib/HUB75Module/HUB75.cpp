@@ -55,6 +55,8 @@ DMAChannel data_transfer_dma, enabler_dma, timer_update_dma;
 IMXRT_FLEXPWM_t *flexpwm = &IMXRT_FLEXPWM2;
 
 extern void setup_matrix(void); 
+extern void adjust_matrix_brightness(uint8_t brightness); 
+extern rgb24* get_matrix_ptr(void); 
 
 /* MATRIX SETUP COMMANDS DEFINITIONS BEGIN */
 static inline void setup_gpio_bitband_map(void);
@@ -112,11 +114,11 @@ static inline void setup_matrix_gpio(void){
     pinMode(33, OUTPUT);  // FlexPWM2_0:B = EMC_07 - BUFFER_LATCH, wire to pin 3
 }
 
-extern inline rgb24* get_matrix_ptr(void){
+extern rgb24* get_matrix_ptr(void){
   return matrix_buffer; 
 }
 
-extern inline void adjust_matrix_brighness(uint8_t brightness){
+extern void adjust_matrix_brightness(uint8_t brightness){
   matrix_brightness = brightness; 
 }
 
