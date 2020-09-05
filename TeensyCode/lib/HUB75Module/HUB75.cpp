@@ -11,16 +11,6 @@
 
 static const unsigned char option_flags = SMARTMATRIX_OPTIONS_NONE;
 
-static const int matrix_width = 64;               // Width of the overall display
-static const int matrix_height = 32;              // Height of the overall display
-static const int matrix_panel_height = 32;        // Height of the individual panels making up the display
-
-static const uint8_t latches_per_row = 8;         // Controls the color depth per pixel; value from 1 to 16; 8 is 24bit truecolor
-static const uint8_t dma_buffer_num_rows = 8;     // Number of rows of pixel data in row_data_buffer; minimum 2; increasing helps with stability
-
-static uint8_t matrix_brightness = 100;           // Range 0-255
-static uint16_t refresh_rate_hz = 100;            // Frames per second. With 12bit color depth, works up to 580 FPS at 600 MHz (720 FPS at 816 MHz)
-
 #define LATCH_TIMER_PULSE_WIDTH_NS  80            // 20 is minimum working value, don't exceed 160 to avoid interference between latch and data transfer.
 #define LATCH_TO_CLK_DELAY_NS       400           // Max delay from rising edge of latch pulse to first pixel clock.
 #define PANEL_PIXELDATA_TRANSFER_MAXIMUM_NS  43   // Time to transfer 1 pixel of data at FlexIO clock rate with FLEXIO_CLOCK_DIVIDER=20.
@@ -38,6 +28,12 @@ typedef struct timerpair {
     uint16_t timer_period;
 } timerpair;
 
+static const uint8_t latches_per_row = 8;         // Controls the color depth per pixel; value from 1 to 16; 8 is 24bit truecolor
+static const uint8_t dma_buffer_num_rows = 8;     // Number of rows of pixel data in row_data_buffer; minimum 2; increasing helps with stability
+static uint16_t refresh_rate_hz = 100;            // Frames per second. With 12bit color depth, works up to 580 FPS at 600 MHz (720 FPS at 816 MHz)
+
+uint8_t matrix_brightness = 20;                   // Range 0-255
+
 static const uint16_t dma_buffer_bytes_per_row = latches_per_row*PIXELS_PER_LATCH*sizeof(uint16_t);   // each pixel takes two bytes
 static const int matrix_row_pair_offset = matrix_panel_height / 2;
 static const int matrix_rows_per_frame = matrix_panel_height / 2;
@@ -46,7 +42,7 @@ static volatile uint32_t DMAMEM row_data_buffer[dma_buffer_bytes_per_row*dma_buf
 static volatile uint8_t DMAMEM enabler_source_byte;
 static volatile timerpair DMAMEM timer_lut[latches_per_row];
 static unsigned int row_address_buffer[dma_buffer_num_rows];
-static rgb24 matrix_buffer[matrix_width*matrix_height];
+rgb24 matrix_buffer[matrix_width*matrix_height];
 
 static const uint8_t dimming_maximum = 255;
 static int dimming_factor = dimming_maximum - matrix_brightness;
@@ -89,16 +85,6 @@ extern void setup_matrix(void){
   set_row_addr(0);
   flex_pwm_setup();
 
-  for(;;){
-      int r = random(255); 
-      int g = random(255); 
-      int b = random(255);
-      for(int n = 0; n < 2048; n++){
-            os_thread_delay_ms(4); 
-            matrix_buffer[n] = rgb24(r, g, b);
-      }
-
-  }
 }
 
 static inline void setup_gpio_bitband_map(void){
@@ -124,6 +110,14 @@ static inline void setup_matrix_gpio(void){
     pinMode(8, OUTPUT);   // FlexIO2:16 = GPIO_B1_00 - BUFFER_G2
     pinMode(4, OUTPUT);   // FlexPWM2_0:A = EMC_06 - BUFFER_OE
     pinMode(33, OUTPUT);  // FlexPWM2_0:B = EMC_07 - BUFFER_LATCH, wire to pin 3
+}
+
+extern inline rgb24* get_matrix_ptr(void){
+  return matrix_buffer; 
+}
+
+extern inline void adjust_matrix_brighness(uint8_t brightness){
+  matrix_brightness = brightness; 
 }
 
 /* 
@@ -230,7 +224,6 @@ void flex_io_setup() {
   uint32_t timer_select, timer_polarity, pin_config, pin_select, pin_polarity, shifterMode, parallel_width, input_source, stop_bit, start_bit,
       trigger_select, trigger_polarity, trigger_source, timer_mode, timer_output, timer_decrement, timer_reset, timer_disable, timer_enable;
   
-
   p_flex = FlexIOHandler::flexIOHandler_list[1]; // get FlexIO2 handler
   flexIO = &p_flex->port(); // Pointer to the port structure in the FlexIO channel
  
@@ -522,7 +515,6 @@ FASTRUN INLINE void format_row_dat(unsigned int row, unsigned int freeRowBuffer)
     * Load the 2 rows from the matrix_buffer and store in temp_row_1 and temp_row_2. Moves through the entire chain of panels and extracts
     * rows from each one, using the stacking options to get the correct rows (some panels can be upside down). 
     */
-
     int y1, y2;
     for(int i=0; i<MATRIX_STACK_HEIGHT; i++) {
         // Z-shape, bottom to top

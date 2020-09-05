@@ -4,11 +4,6 @@
 // Including primary arduino libraries 
 #include <Arduino.h> 
 
-// Including our RTOS scheduling libraries 
-#include "OS/OSThreadKernel.h"
-#include "OS/OSMutexKernel.h"
-#include "OS/OSSignalKernel.h"
-
 // Our FlexIO PWM Libraries
 #include "FlexIO_t4.h"
 // Gamma Lookup table librarie 
@@ -36,7 +31,14 @@ typedef struct rgb48 {
     uint16_t blue;
 } rgb48;
 
+static const int matrix_width = 64;               // Width of the overall display
+static const int matrix_height = 32;              // Height of the overall display
+static const int matrix_panel_height = 32;        // Height of the individual panels making up the display
 
+// Call this to start matrix drivers. 
 extern void setup_matrix(void); 
-
+// Pointer to matrix array. 
+extern inline rgb24* get_matrix_ptr(void); 
+// Allows us to change matrix. 
+extern inline void adjust_matrix_brigthness(uint8_t brightness); 
 #endif 
