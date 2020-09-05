@@ -343,6 +343,7 @@ void flex_pwm_setup(void) {
   flexpwm->SM[SUBMODULE].DMAEN |= FLEXPWM_SMDMAEN_VALDE;
 }
 
+#define ROW_CALCULATION_ISR_PRIORITY 240 // lowest priority
 void dma_setup() {
   unsigned int minor_loop_bytes, minor_loop_iterations, major_loop_bytes, major_loop_iterations, destination_address_modulo;
   int destination_address_offset, destination_address_last_offset, source_address_offset, source_address_last_offset, minor_loop_offset;
@@ -438,7 +439,6 @@ void dma_setup() {
   data_transfer_dma.attachInterrupt(row_update_isr);
 
   /* Borrow the interrupt allocated to timer_update_dma to use as a software interrupt. It is triggered manually inside row_update_isr (not by timer_update_dma). */
-  #define ROW_CALCULATION_ISR_PRIORITY 240 // lowest priority
   NVIC_SET_PRIORITY(IRQ_DMA_CH0 + timer_update_dma.channel, ROW_CALCULATION_ISR_PRIORITY);
   timer_update_dma.attachInterrupt(row_calc_isr);
   
