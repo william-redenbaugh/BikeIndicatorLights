@@ -34,3 +34,59 @@ void set_matrix_hsv(uint8_t x, uint8_t y, HsvColor col){
     // But look the same since their data types are the same
     set_matrix(x, y, rgb_col);
 }
+
+void matrix_swipe_right(uint16_t speed){
+  rgb24 signal_orange = {253, 184, 19};
+
+  for(int x = 0; x < matrix_width; x++){
+    for(int y = 0; y < matrix_height; y++){
+      set_matrix(x, y, signal_orange); 
+    }
+    os_thread_delay_ms(speed);
+  }
+
+  rgb24 signal_black = {0, 0, 0}; 
+  
+  for(int x = 0; x < matrix_width; x++){
+    for(int y = 0; y < matrix_height; y++){
+      set_matrix(x, y, signal_black); 
+    }
+    os_thread_delay_ms(speed);
+  }
+}
+
+void matrix_swipe_left(uint16_t speed){
+  rgb24 signal_orange = {253, 184, 19};
+
+  for(int x = 0; x < matrix_width; x++){
+    for(int y = 0; y < matrix_height; y++){
+      set_matrix(63-x, y, signal_orange); 
+    }
+    os_thread_delay_ms(speed);
+  }
+
+  rgb24 signal_black = {0, 0, 0}; 
+  
+  for(int x = 0; x < matrix_width; x++){
+    for(int y = 0; y < matrix_height; y++){
+      set_matrix(63-x, y, signal_black); 
+    }
+    os_thread_delay_ms(speed);
+  }
+}
+
+void matrix_fill_stop(void){
+  rgb24 red = {255, 0, 0};
+
+  for(int n = 0; n < matrix_width * matrix_height; n++){
+    matrix_arr_ptr[n] = red; 
+  }
+}
+
+void matrix_fill_black(void){
+  rgb24 red = {0, 0, 0};
+
+  for(int n = 0; n < matrix_width * matrix_height; n++){
+    matrix_arr_ptr[n] = red; 
+  }
+}

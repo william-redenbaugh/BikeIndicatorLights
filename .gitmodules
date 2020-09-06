@@ -13,3 +13,6 @@
 [submodule "TeensyCode/lib/--force"]
 	path = TeensyCode/lib/--force
 	url = git@github.com:KurtE/FlexIO_t4.git
+[submodule "TeensyCode/lib/MPU6050"]
+	path = TeensyCode/lib/MPU6050
+	url = git@github.com:gustavors88/MPU6050.git
