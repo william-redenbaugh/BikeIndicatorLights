@@ -40,17 +40,19 @@ typedef enum{
 */
 typedef struct{
     // Accelerometer Data. 
-    uint16_t a_x; 
-    uint16_t a_y; 
-    uint16_t a_z; 
+    int16_t a_x; 
+    int16_t a_y; 
+    int16_t a_z; 
 
     // Gyroscope data. 
-    uint16_t g_x; 
-    uint16_t g_y; 
-    uint16_t g_z; 
+    int16_t g_x; 
+    int16_t g_y; 
+    int16_t g_z; 
+
+    bool success; 
 }imu_data_raw;
 
-mpu_init_status_t init_mpu6050(uint8_t i2c_address = 0x68); 
+mpu_init_status_t init_mpu6050(uint8_t i2c_address, mpu_accelerometer_range_t a_range, mpu_gyro_range_t g_range); 
 imu_data_raw get_latest_mpu6050_data(bool blocking); 
 
 #endif 

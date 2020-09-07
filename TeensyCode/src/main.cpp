@@ -7,7 +7,7 @@
 
 // IMU runtime module 
 #include "imu_runtime.hpp"
-
+#include "mpu6050_imu.h"
 void setup() {
   os_init();   
 

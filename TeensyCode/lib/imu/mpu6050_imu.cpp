@@ -85,8 +85,14 @@
 #define GYRO_YOUT_L      0x46
 #define GYRO_ZOUT_H      0x47
 #define GYRO_ZOUT_L      0x48
+
+/*!
+*   @brief Allows us to configure the power mode and clock source of the imu. Provides a bit for resetting entire device
+*   @brief And a bit for disabling tempurature sensor. 
+*   @note For more information on the power management register, visit page 40 of the primary pdf. 
+*
+*/
 #define PWR_MGMT_1       0x6B 
-#define PWR_MGMT_2       0x6C
 
 /*!
 *   @brief Register that helps identify what type of device we are talking to on the i2c bus 
@@ -95,13 +101,22 @@
 */
 #define WHO_AM_I 0x75 
 
+/*!
+*   @brief Which i2c device are we reading from 
+*/
 uint8_t device_address; 
 
-mpu_init_status_t init_mpu6050(uint8_t i2c_address = 0x68); 
+/*              FUNCTION DECLARATIONS BEGIN                 */
+mpu_init_status_t init_mpu6050(uint8_t i2c_address, mpu_accelerometer_range_t a_range, mpu_gyro_range_t g_range); 
+static inline void i2c_setup_gyroscope(mpu_gyro_range_t g_range);
+static inline void i2c_setup_accelerometer(mpu_accelerometer_range_t a_range); 
 imu_data_raw get_latest_mpu6050_data(bool blocking); 
+static inline void get_mpu6050_gyro_data(imu_data_raw *dat); 
+static inline void get_mpu6050_accelerometer_data(imu_data_raw *dat); 
 static void i2c_read_bytes(uint8_t sub_addr, uint8_t count, uint8_t *dest); 
 static uint8_t i2c_read_byte(uint8_t sub_addr); 
 static void i2c_write_byte(uint8_t sub_addr, uint8_t data); 
+/*               FUNCTION DECLARATIONS END                  */
 
 /*!
 *   @brief Easy setup of the imu module. 
@@ -109,16 +124,58 @@ static void i2c_write_byte(uint8_t sub_addr, uint8_t data);
 *   @param uint8_t i2c_address
 *   @return mpu_init_status_t status of setting up the imu
 */
-mpu_init_status_t init_mpu_6050(uint8_t i2c_address = 0x68){
+mpu_init_status_t init_mpu_6050(uint8_t i2c_address, mpu_accelerometer_range_t a_range, mpu_gyro_range_t g_range){
     device_address = i2c_address; 
     
     if(i2c_read_byte(WHO_AM_I) != 0x68)
         return MPU6050_NOT_FOUND; 
-    
-    i2c_write_byte(PWR_MGMT_1, 0x01); 
 
+    // Get's stable time source from the PLL with x-axis gyro reference. 
+    // Check Page 40 of the primary pdf for more details.      
+    i2c_write_byte(PWR_MGMT_1, 0b00000001); 
+
+    // Configures the accelerometer and the gyroscope. 
+    // Disables Fsync
+    // Set's sample rate to 1khz for entire imu. 
+    i2c_write_byte(CONFIG, 0b00000011); 
+
+    // Sets sample rate dividor to 200hz(1000/ (1 + 4) = 200hz)
+    i2c_write_byte(SMPLRT_DIV, 0x04); 
+
+    i2c_setup_gyroscope(g_range); 
+    i2c_setup_accelerometer(a_range); 
+
+    // Configure interrupts and bypass enable. 
+    // Set's interrupt pins to active high, push-pull and clear on read of INT_STATUS
+    // Enables' I2C_BYPASS_EN so more chips can join i2c bus. 
+    i2c_write_byte(INT_PIN_CFG, 0b00000010); 
+    i2c_write_byte(INT_ENABLE, 0b00000001);                  // Enable data read (bit 0) interrupt
 
     return MPU6050_INIT_SUCCESS; 
+}
+
+/*!
+*   @brief Helper function that abstracts i2c setup of gyroscope
+*   @param mpu_gyro_range_t g_range
+*/
+static inline void i2c_setup_gyroscope(mpu_gyro_range_t g_range){
+    // Set's gyro range 
+    // Set FS_SEL and AFS_SEL bitmasks. 
+    register uint8_t buffer = i2c_read_byte(GYRO_CONFIG); 
+    i2c_write_byte(GYRO_CONFIG, buffer & ~0xE0);            // Clear self test bits[7:5] 
+    i2c_write_byte(GYRO_CONFIG, buffer & ~0x18);            // Clear AFS bits
+    i2c_write_byte(GYRO_CONFIG, buffer | (uint8_t)g_range); // Set full range for gyroscope
+}
+
+/*!
+*   @brief Helper function that abstracts i2c setup of accelereometer
+*   @param mpu_accelerometer_range_t a_range
+*/
+static inline void i2c_setup_accelerometer(mpu_accelerometer_range_t a_range){
+    register uint8_t buffer = i2c_read_byte(ACCEL_CONFIG); 
+    i2c_write_byte(ACCEL_CONFIG, buffer & ~0xE0);            // Clear self test bits[7:5] 
+    i2c_write_byte(ACCEL_CONFIG, buffer & ~0x18);            // Clear AFS bits
+    i2c_write_byte(ACCEL_CONFIG, buffer | (uint8_t)a_range); // Set full range for gyroscope
 }
 
 /*!
@@ -126,8 +183,56 @@ mpu_init_status_t init_mpu_6050(uint8_t i2c_address = 0x68){
 *   @param bool Whether or not we will wait for data to be available or not
 */
 imu_data_raw get_latest_mpu6050_data(bool blocking){
-    imu_data_raw dat; 
+    imu_data_raw dat;
+
+    if(blocking == false){
+        dat.success = false; 
+        if(!(i2c_read_byte(INT_STATUS) &0x01))
+            return dat; 
+        
+        dat.success = true; 
+        get_mpu6050_accelerometer_data(&dat); 
+        get_mpu6050_gyro_data(&dat);
+    }
+    else{
+        // Sit and wait for new data to come in 
+        while(i2c_read_byte(INT_STATUS) & 0x01)
+            _os_yield(); 
+
+        // We were able to get data successfully. 
+        dat.success = true; 
+        get_mpu6050_accelerometer_data(&dat); 
+        get_mpu6050_gyro_data(&dat); 
+    }
     return dat; 
+}
+
+/*!
+*   @brief Fetches the latest imu gyroscope data. 
+*   @param imy_data_raw* pointer to data to fill in. 
+*/
+static inline void get_mpu6050_gyro_data(imu_data_raw *dat){
+    uint8_t raw_dat[6];
+    i2c_read_bytes(ACCEL_XOUT_H, 6, raw_dat); 
+
+    // Concatenate 2 bytes into single uint16_t variable
+    dat->g_x = (int16_t)((raw_dat[0] << 8) | raw_dat[1]); 
+    dat->g_x = (int16_t)((raw_dat[2] << 8) | raw_dat[3]); 
+    dat->g_x = (int16_t)((raw_dat[4] << 8) | raw_dat[5]); 
+}
+
+/*!
+*   @brief Fetches the latest imu accelerometer data. 
+*   @param imy_data_raw* pointer to data to fill in. 
+*/
+static inline void get_mpu6050_accelerometer_data(imu_data_raw *dat){
+    uint8_t raw_dat[6];
+    i2c_read_bytes(ACCEL_XOUT_H, 6, raw_dat); 
+
+    // Concatenate 2 bytes into single uint16_t variable
+    dat->a_x = (int16_t)((raw_dat[0] << 8) | raw_dat[1]); 
+    dat->a_x = (int16_t)((raw_dat[2] << 8) | raw_dat[3]); 
+    dat->a_x = (int16_t)((raw_dat[4] << 8) | raw_dat[5]); 
 }
 
 /*!
