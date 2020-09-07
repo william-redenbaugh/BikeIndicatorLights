@@ -10,9 +10,14 @@
 
 void setup() {
   os_init();   
+
+  // Setting up the IMU
+  setup_imu_runtime(); 
+
   setup_matrix_engine(250);  
   Serial.begin(115200);
-  void setup_imu_runtime(); 
+  
+  setup_imu_runtime();
 }
 
 void loop() {

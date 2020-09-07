@@ -1,6 +1,14 @@
 #include "imu_runtime.hpp"
 
+/*!
+*   @brief Statically allocated thread stack. 
+*/
 static uint32_t imu_thread_stack[2048]; 
+
+/*!
+*   @brief IMU manipulation and data collection object
+*/
+static MPU6050 imu;
 
 void setup_imu_runtime(void);  
 static void imu_thread(void *parameters); 
@@ -17,8 +25,8 @@ void setup_imu_runtime(void){
 *   @brief IMU runtime thread
 */
 static void imu_thread(void *parameters){
-    
+    imu.begin(AFS_4G, GFS_250DPS);
     for(;;){
-
+        os_thread_delay_ms(200);
     }
 }
