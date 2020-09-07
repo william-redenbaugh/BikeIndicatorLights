@@ -2,6 +2,7 @@
 #define MPU6050_IMU_H
 
 #include <Arduino.h> 
+#include <Wire.h> 
 
 #include "OS/OSMutexKernel.h"
 #include "OS/OSSignalKernel.h"
@@ -27,6 +28,14 @@ typedef enum{
 }mpu_gyro_range_t; 
 
 /*!
+*   @brief Enumerated status of mpu init. 
+*/
+typedef enum{
+    MPU6050_INIT_SUCCESS, 
+    MPU6050_NOT_FOUND
+}mpu_init_status_t; 
+
+/*!
 *   @brief Struct that holds the raw imu data. 
 */
 typedef struct{
@@ -41,7 +50,7 @@ typedef struct{
     uint16_t g_z; 
 }imu_data_raw;
 
-void init_mpu6050(uint8_t i2c_address); 
+mpu_init_status_t init_mpu6050(uint8_t i2c_address = 0x68); 
 imu_data_raw get_latest_mpu6050_data(bool blocking); 
 
 #endif 
