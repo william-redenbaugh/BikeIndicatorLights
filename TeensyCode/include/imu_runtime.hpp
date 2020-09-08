@@ -5,7 +5,8 @@
 #include "OS/OSThreadKernel.h"
 #include "OS/OSSignalKernel.h"
 #include "OS/OSMutexKernel.h"
-#include "MPU6050.h"
+
+#include "mpu6050_imu.h"
 
 void setup_imu_runtime(void); 
 

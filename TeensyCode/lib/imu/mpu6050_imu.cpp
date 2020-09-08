@@ -104,7 +104,20 @@
 /*!
 *   @brief Which i2c device are we reading from 
 */
-uint8_t device_address; 
+static uint8_t device_address; 
+
+/*!
+*   @brief The set accelerometer range
+*   @note Only relevant after you call the init_mpu6050 function
+*/
+static mpu_accelerometer_range_t accelerometer_range; 
+
+
+/*!
+*   @brief The set accelerometer range
+*   @note Only relevant after you call the init_mpu6050 function
+*/
+static mpu_gyro_range_t gyroscope_range; 
 
 /*              FUNCTION DECLARATIONS BEGIN                 */
 mpu_init_status_t init_mpu6050(uint8_t i2c_address, mpu_accelerometer_range_t a_range, mpu_gyro_range_t g_range); 
@@ -115,7 +128,12 @@ static inline void get_mpu6050_gyro_data(imu_data_raw *dat);
 static inline void get_mpu6050_accelerometer_data(imu_data_raw *dat); 
 static void i2c_read_bytes(uint8_t sub_addr, uint8_t count, uint8_t *dest); 
 static uint8_t i2c_read_byte(uint8_t sub_addr); 
-static void i2c_write_byte(uint8_t sub_addr, uint8_t data); 
+static void i2c_write_byte(uint8_t sub_addr, uint8_t data);
+static inline void convert_accel_raw_g_helper(accel_data_g *dat, imu_data_raw *raw_dat, float divider); 
+accel_data_g translate_accel_raw_g(imu_data_raw raw_dat); 
+accel_data_ms2 translate_accel_g_ms2(accel_data_g dat_g);
+static inline void convert_gyro_raw_d_s_helper(gyro_data_d_s *dat, imu_data_raw *raw_dat, float deg_sec);
+gyro_data_d_s translate_gyro_raw_d_s(imu_data_raw raw_dat);
 /*               FUNCTION DECLARATIONS END                  */
 
 /*!
@@ -124,9 +142,18 @@ static void i2c_write_byte(uint8_t sub_addr, uint8_t data);
 *   @param uint8_t i2c_address
 *   @return mpu_init_status_t status of setting up the imu
 */
-mpu_init_status_t init_mpu_6050(uint8_t i2c_address, mpu_accelerometer_range_t a_range, mpu_gyro_range_t g_range){
+mpu_init_status_t init_mpu6050(uint8_t i2c_address, mpu_accelerometer_range_t a_range, mpu_gyro_range_t g_range){
+    // Start up the i2c device. 
+    Wire.begin(); 
+
+    // Save these for use during conversions
+    accelerometer_range = a_range; 
+    gyroscope_range = g_range; 
+
     device_address = i2c_address; 
     
+    // Making sure the device we are trying to read
+    // Has the right return address. 
     if(i2c_read_byte(WHO_AM_I) != 0x68)
         return MPU6050_NOT_FOUND; 
 
@@ -196,7 +223,7 @@ imu_data_raw get_latest_mpu6050_data(bool blocking){
     }
     else{
         // Sit and wait for new data to come in 
-        while(i2c_read_byte(INT_STATUS) & 0x01)
+        while(!(i2c_read_byte(INT_STATUS) & 0x01))
             _os_yield(); 
 
         // We were able to get data successfully. 
@@ -217,8 +244,8 @@ static inline void get_mpu6050_gyro_data(imu_data_raw *dat){
 
     // Concatenate 2 bytes into single uint16_t variable
     dat->g_x = (int16_t)((raw_dat[0] << 8) | raw_dat[1]); 
-    dat->g_x = (int16_t)((raw_dat[2] << 8) | raw_dat[3]); 
-    dat->g_x = (int16_t)((raw_dat[4] << 8) | raw_dat[5]); 
+    dat->g_y = (int16_t)((raw_dat[2] << 8) | raw_dat[3]); 
+    dat->g_z = (int16_t)((raw_dat[4] << 8) | raw_dat[5]); 
 }
 
 /*!
@@ -231,8 +258,8 @@ static inline void get_mpu6050_accelerometer_data(imu_data_raw *dat){
 
     // Concatenate 2 bytes into single uint16_t variable
     dat->a_x = (int16_t)((raw_dat[0] << 8) | raw_dat[1]); 
-    dat->a_x = (int16_t)((raw_dat[2] << 8) | raw_dat[3]); 
-    dat->a_x = (int16_t)((raw_dat[4] << 8) | raw_dat[5]); 
+    dat->a_y = (int16_t)((raw_dat[2] << 8) | raw_dat[3]); 
+    dat->a_z = (int16_t)((raw_dat[4] << 8) | raw_dat[5]); 
 }
 
 /*!
@@ -274,4 +301,100 @@ static void i2c_write_byte(uint8_t sub_addr, uint8_t data){
     Wire.write(sub_addr); 
     Wire.write(data); 
     Wire.endTransmission(); 
+}
+
+/*!
+*   @brief Helper function that preforms the fpu operations
+*   @param accel_data_g *dat
+*   @param imu_data_raw *raw_dat
+*   @param float divider
+*/
+static inline void convert_accel_raw_g_helper(accel_data_g *dat, imu_data_raw *raw_dat, float divider){
+    dat->a_x = float(raw_dat->a_x)/divider; 
+    dat->a_y = float(raw_dat->a_y)/divider; 
+    dat->a_z = float(raw_dat->a_z)/divider; 
+}
+
+/*!
+*   @brief Translates the raw data coming out of the sensor into g data. 
+*   @param imu_data_raw raw_dat
+*   @return accel_data_g
+*/
+accel_data_g translate_accel_raw_g(imu_data_raw raw_dat){
+    accel_data_g dat;
+    switch(accelerometer_range){
+    case(ACCELEROMETER_2G):
+        convert_accel_raw_g_helper(&dat, &raw_dat, 32768.0);
+    break; 
+    case(ACCELEROMETER_4G):
+        convert_accel_raw_g_helper(&dat, &raw_dat, 16384.0);
+    break; 
+    
+    case(ACCELEROMETER_8G):
+        convert_accel_raw_g_helper(&dat, &raw_dat, 8192.0);
+    break; 
+    
+    case(ACCELEROMETER_16G):
+        convert_accel_raw_g_helper(&dat, &raw_dat, 4096.0);
+    break; 
+    default: 
+    break; 
+    }
+    return dat; 
+}
+
+/*!
+*   @brief Translates g data into m/s^2 data. 
+*   @param accel_data_g dat_g
+*   @param accel_data_ms2 
+*/
+accel_data_ms2 translate_accel_g_ms2(accel_data_g dat_g){
+    accel_data_ms2 dat; 
+    dat.a_x = dat_g.a_x/0.101971; 
+    dat.a_y = dat_g.a_y/0.101971; 
+    dat.a_z = dat_g.a_z/0.101971; 
+    return dat; 
+}
+
+/*!
+*   @brief Helper function that does the fpu math converting gyro data into raw data. 
+*   @param gyro_data_d_s *dat
+*   @param imu_data_raw *raw_dat
+*   @param float deg_sec
+*/
+static inline void convert_gyro_raw_d_s_helper(gyro_data_d_s *dat, imu_data_raw *raw_dat, float deg_sec){
+    dat->g_x = (float(raw_dat->g_x) / 32768) * deg_sec;
+    dat->g_y = (float(raw_dat->g_y) / 32768) * deg_sec;
+    dat->g_z = (float(raw_dat->g_z) / 32768) * deg_sec;
+}
+
+/*!
+*   @brief Takes in raw imu data and spits out gyro data in degrees per second
+*   @param imu_data_raw
+*   @note gyro_data_d_s
+*/
+gyro_data_d_s translate_gyro_raw_d_s(imu_data_raw raw_dat){
+    gyro_data_d_s dat; 
+
+    switch(gyroscope_range){
+    case(GYRO_250_DEGREE_SECCOND):
+    convert_gyro_raw_d_s_helper(&dat, &raw_dat, 250);
+    break; 
+
+    case(GYRO_500_DEGREE_SECCOND):
+    convert_gyro_raw_d_s_helper(&dat, &raw_dat, 500);
+    break; 
+    
+    case(GYRO_1000_DEGREE_SECCOND):
+    convert_gyro_raw_d_s_helper(&dat, &raw_dat, 1000);
+    break; 
+    
+    case(GYRO_2000_DEGREE_SECCOND):
+    convert_gyro_raw_d_s_helper(&dat, &raw_dat, 2000);
+    break; 
+    
+    default:
+    break; 
+    }
+    return dat; 
 }

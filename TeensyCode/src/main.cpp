@@ -2,22 +2,20 @@
 #include <Arduino.h> 
 #include "OS/OSThreadKernel.h"
 
-// Matrix Helper Libraries 
-#include "MatrixEngine.hpp"
 
 // IMU runtime module 
 #include "imu_runtime.hpp"
-#include "mpu6050_imu.h"
+#include "matrix_runtime.h"
 void setup() {
   os_init();   
 
   // Setting up the IMU
   setup_imu_runtime(); 
 
-  setup_matrix_engine(250);  
+  // Setting up matrix
+  start_matrix_runtime(); 
+
   Serial.begin(115200);
-  
-  setup_imu_runtime();
 }
 
 void loop() {
