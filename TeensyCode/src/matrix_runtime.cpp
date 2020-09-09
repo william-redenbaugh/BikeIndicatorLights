@@ -14,7 +14,9 @@ void start_matrix_runtime(void){
 
 static void matrix_thread(void *parameters){
     setup_matrix_engine(255); 
+    rgb24 col = {200, 200, 200};
     for(;;){
+        
         os_thread_delay_ms(20);
     }
 }
