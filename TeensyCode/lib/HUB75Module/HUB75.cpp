@@ -103,15 +103,23 @@ static inline void setup_gpio_bitband_map(void){
 }
 
 static inline void setup_matrix_gpio(void){
-    pinMode(10, OUTPUT);  // FlexIO2:0 = GPIO_B0_00 - BUFFER_CLK, wire to pin 14
-    pinMode(12, OUTPUT);  // FlexIO2:1 = GPIO_B0_01 - BUFFER_R1, wire to pin 2
-    pinMode(11, OUTPUT);  // FlexIO2:2 = GPIO_B0_02 - BUFFER_B2, wire to pin 20
-    pinMode(6, OUTPUT);   // FlexIO2:10 = GPIO_B0_10 - BUFFER_B1
-    pinMode(9, OUTPUT);   // FlexIO2:11 = GPIO_B0_11 - BUFFER_R2, wire to pin 21
-    pinMode(32, OUTPUT);  //FlexIO2:12 = GPIO_B0_12 - BUFFER_G1, wire to pin 5
-    pinMode(8, OUTPUT);   // FlexIO2:16 = GPIO_B1_00 - BUFFER_G2
-    pinMode(4, OUTPUT);   // FlexPWM2_0:A = EMC_06 - BUFFER_OE
-    pinMode(33, OUTPUT);  // FlexPWM2_0:B = EMC_07 - BUFFER_LATCH, wire to pin 3
+  // First set of RGB values 
+  pinMode(12, OUTPUT);  // FlexIO2:1  = GPIO_B0_01 - BUFFER_R1 | BUFFER_A / BUFFER_ADX0, wire to pin 2
+  pinMode(32, OUTPUT);  // FlexIO2:12 = GPIO_B0_12 - BUFFER_G1 | BUFFER_C / BUFFER_ADX2 , wire to pin 5
+  pinMode(6, OUTPUT);   // FlexIO2:10 = GPIO_B0_10 - BUFFER_B1 | BUFFER_B / BUFFER_ADX1
+  
+  // 2nd set of RGB values
+  pinMode(9, OUTPUT);   // FlexIO2:11 = GPIO_B0_11 - BUFFER_R2 | BUFFER_D / BUFFER_ADX3 , wire to pin 21
+  pinMode(8, OUTPUT);   // FlexIO2:16 = GPIO_B1_00 - BUFFER_G2
+  pinMode(11, OUTPUT);  // FlexIO2:2  = GPIO_B0_02 - BUFFER_B2, wire to pin 20
+  
+  // Matrix Clock
+  pinMode(10, OUTPUT);  // FlexIO2:0  = GPIO_B0_00 - BUFFER_CLK , wire to pin 14
+  
+  // Matrix output enable
+  pinMode(4, OUTPUT);   // FlexPWM2_0:A = EMC_06 - BUFFER_OE
+  // Matrix Latch. 
+  pinMode(33, OUTPUT);  // FlexPWM2_0:B = EMC_07 - BUFFER_LATCH, wire to pin 3
 }
 
 extern rgb24* get_matrix_ptr(void){
