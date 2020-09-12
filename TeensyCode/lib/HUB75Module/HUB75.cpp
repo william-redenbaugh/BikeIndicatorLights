@@ -155,12 +155,8 @@ void calculate_timer_lut(void) {
     uint32_t ticks_used;
     uint16_t msb_block_ticks = IDEAL_MSB_BLOCK_TICKS + MSB_BLOCK_TICKS_ADJUSTMENT_INCREMENT;
 
-    if (MIN_BLOCK_PERIOD_TICKS * latches_per_row >= TICKS_PER_ROW) {
+    if (MIN_BLOCK_PERIOD_TICKS * latches_per_row >= TICKS_PER_ROW | refresh_rate_hz < MIN_REFRESH_RATE_HZ) 
       exit(1);
-    }
-    if (refresh_rate_hz < MIN_REFRESH_RATE_HZ) {
-      exit(1);
-    }
 
     // start with ideal width of the MSB, and keep lowering until the width of all bits fits within TICKS_PER_ROW
     do {
