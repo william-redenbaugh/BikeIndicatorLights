@@ -6,16 +6,42 @@
 */
 
 #define SMARTMATRIX_OPTIONS_NONE                    0
+
+/*!
+* @brief 
+*/
 #define SMARTMATRIX_OPTIONS_C_SHAPE_STACKING        (1 << 0)
 #define SMARTMATRIX_OPTIONS_BOTTOM_TO_TOP_STACKING  (1 << 1)
 
+/*!
+* @brief Matrix option flags. 
+*/
 static const unsigned char option_flags = SMARTMATRIX_OPTIONS_NONE;
 
-#define LATCH_TIMER_PULSE_WIDTH_NS  80            // 20 is minimum working value, don't exceed 160 to avoid interference between latch and data transfer.
-#define LATCH_TO_CLK_DELAY_NS       400           // Max delay from rising edge of latch pulse to first pixel clock.
-#define PANEL_PIXELDATA_TRANSFER_MAXIMUM_NS  43   // Time to transfer 1 pixel of data at FlexIO clock rate with FLEXIO_CLOCK_DIVIDER=20.
+/*!
+* @brief Latch timing pulse width. 
+* @note  20 is minimum working value, don't exceed 160 to avoid interference between latch and data transfer.
+*/
+#define LATCH_TIMER_PULSE_WIDTH_NS  80            
 
+/*!
+* @brief Max delay from rising of of latch pulse to pixel first clock
+*/
+#define LATCH_TO_CLK_DELAY_NS       400          
+
+/*!
+* @brief Time to transfer 1 pixel of data at FlexIO clock rate with FLEXIO_CLOCK_DIVIDER = 20.
+*/
+#define PANEL_PIXELDATA_TRANSFER_MAXIMUM_NS  43  
+
+/*!
+* @brief Latch timer prescaler. 
+*/
 #define LATCH_TIMER_PRESCALE  0
+
+/*!
+* @brief Frequency of the timers. 
+*/
 #define TIMER_FREQUENCY     (F_BUS_ACTUAL>>LATCH_TIMER_PRESCALE)
 #define NS_TO_TICKS(X)      (uint32_t)(TIMER_FREQUENCY * ((X) / 1000000000.0) + 0.5)
 #define LATCH_TIMER_PULSE_WIDTH_TICKS   NS_TO_TICKS(LATCH_TIMER_PULSE_WIDTH_NS)
@@ -23,31 +49,92 @@ static const unsigned char option_flags = SMARTMATRIX_OPTIONS_NONE;
 #define PIXELS_PER_LATCH  (matrix_width * MATRIX_STACK_HEIGHT)
 #define INLINE __attribute__( ( always_inline ) ) inline
 
-typedef struct timerpair {
+/*!
+* @brief Struct that deals with the output enable and period timers. 
+*/
+typedef struct{
     uint16_t timer_oe;
     uint16_t timer_period;
-} timerpair;
+}timerpair;
 
-static const uint8_t latches_per_row = 8;         // Controls the color depth per pixel; value from 1 to 16; 8 is 24bit truecolor
-static const uint8_t dma_buffer_num_rows = 8;     // Number of rows of pixel data in row_data_buffer; minimum 2; increasing helps with stability
-static uint16_t refresh_rate_hz = 100;            // Frames per second. With 12bit color depth, works up to 580 FPS at 600 MHz (720 FPS at 816 MHz)
+/*!
+* @brief Controls the color depth per pixel; value from 1 to 16; 8 is 24bit truecolor
+*/
+static const uint8_t latches_per_row = 8; 
 
-uint8_t matrix_brightness = 20;                   // Range 0-255
+/*!
+* @brief Number of rows of pixel data in row_data_buffer; minimum 2; increasing helps with stability
+*/
+static const uint8_t dma_buffer_num_rows = 2;    
 
-static const uint16_t dma_buffer_bytes_per_row = latches_per_row*PIXELS_PER_LATCH*sizeof(uint16_t);   // each pixel takes two bytes
+/*!
+* @brief Refresh rate in frames per seconds. 
+* @note With 12bit color depth, works up to 580 FPS at 600 MHz (720 FPS at 816 MHz)
+*/
+static uint16_t refresh_rate_hz = 100;      
+
+/*!
+* @brief Brightness level of the matrix panel 
+*/  
+static uint8_t matrix_brightness = 20;                  
+
+/*!
+* @brief DMA buffer size per rot. 
+* @note Each pixel takes two bytes. s
+*/
+static const uint16_t dma_buffer_bytes_per_row = latches_per_row*PIXELS_PER_LATCH*sizeof(uint16_t); 
+
+/*!
+* @brief Matrix row offset. 
+*/
 static const int matrix_row_pair_offset = matrix_panel_height / 2;
+
+/*!
+* @brief Matrix rows per frame. 
+*/
 static const int matrix_rows_per_frame = matrix_panel_height / 2;
 
-static volatile uint32_t DMAMEM row_data_buffer[dma_buffer_bytes_per_row*dma_buffer_num_rows/sizeof(uint32_t)];
+/*!
+* @brief DMA row data buffer that DMA peripheral will read to clock out data. 
+*/
+static volatile uint32_t DMAMEM row_data_buffer[dma_buffer_bytes_per_row * dma_buffer_num_rows / sizeof(uint32_t)];
+
+/*!
+* @brief Enable source byte. 
+*/
 static volatile uint8_t DMAMEM enabler_source_byte;
+
+/*!
+* @brief For dealing with lookup table stuff. 
+*/
 static volatile timerpair DMAMEM timer_lut[latches_per_row];
+
+/*!
+* @brief Row address buffer that holds current row address prosition
+*/
 static unsigned int row_address_buffer[dma_buffer_num_rows];
+
+/*!
+* @brief Byte array of matrix buffer. Change the data in here and you change what's on screen
+*/
 rgb24 matrix_buffer[matrix_width*matrix_height];
 
+/*!
+* @brief Maximum Dimming value
+* @note (is just max value of uint8_t word)
+*/
 static const uint8_t dimming_maximum = 255;
+
+/*!
+* @brief Since we pull low to enable output, the dimming factor is the inverse of matrix brightness
+*/
 static int dimming_factor = dimming_maximum - matrix_brightness;
-static unsigned int row_buffer_index = 0;
-static unsigned int row_buffer_fillcount = 0;
+
+/*!
+* @brief Row buffer index 
+*/
+static volatile unsigned int row_buffer_index = 0;
+static volatile unsigned int row_buffer_fillcount = 0;
 
 FlexIOHandler *p_flex;
 IMXRT_FLEXIO_t *flexIO;
@@ -122,10 +209,16 @@ static inline void setup_matrix_gpio(void){
   pinMode(33, OUTPUT);  // FlexPWM2_0:B = EMC_07 - BUFFER_LATCH, wire to pin 3
 }
 
+/*!
+* @brief Get a pointer to the matrix data. 
+*/
 extern rgb24* get_matrix_ptr(void){
   return matrix_buffer; 
 }
 
+/*!
+* @brief Sets the matrix brightness levels. 
+*/
 extern void adjust_matrix_brightness(uint8_t brightness){
   matrix_brightness = brightness; 
 }
@@ -155,7 +248,7 @@ void calculate_timer_lut(void) {
     uint32_t ticks_used;
     uint16_t msb_block_ticks = IDEAL_MSB_BLOCK_TICKS + MSB_BLOCK_TICKS_ADJUSTMENT_INCREMENT;
 
-    if (MIN_BLOCK_PERIOD_TICKS * latches_per_row >= TICKS_PER_ROW | refresh_rate_hz < MIN_REFRESH_RATE_HZ) 
+    if ((MIN_BLOCK_PERIOD_TICKS * latches_per_row >= TICKS_PER_ROW) | (refresh_rate_hz < MIN_REFRESH_RATE_HZ)) 
       exit(1);
 
     // start with ideal width of the MSB, and keep lowering until the width of all bits fits within TICKS_PER_ROW
