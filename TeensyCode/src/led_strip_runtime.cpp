@@ -32,17 +32,33 @@ static volatile bike_led_signal_state_t next_bike_led_state;
 static OSSignal bike_trigger_signal; 
 
 /*!
+*   @brief RGBW struct that helps make code more readable
+*/
+typedef struct{
+    uint8_t r; 
+    uint8_t g; 
+    uint8_t b; 
+    uint8_t w; 
+}rgbw_t; 
+
+/*!
+*   @brief Some color definitions to keep handy. 
+*/
+static const rgbw_t RGBW_ORANGE =   {255, 151, 0, 0}; 
+static const rgbw_t RGBW_WHITE =    {0, 0, 0, 70}; 
+static const rgbw_t RGBW_RED =      {255, 0, 0, 20}; 
+
+/*!
 *   @brief Function declarations 
 */
-
 extern void trigger_led_strip_bike_animation(bike_led_signal_state_t signal);
 void start_led_strip_runtime(void);
 static void led_strip_thread(void *parameters); 
 static inline void draw_white(void); 
-static inline void signal_orange(uint16_t k); 
+static inline void fill_col_nodraw(rgbw_t col); 
 static inline void stop(void);
-static void swipe_left(void); 
-static void swipe_right(void); 
+static void swipe_left(rgbw_t foreground, rgbw_t background); 
+static void swipe_right(rgbw_t foreground, rgbw_t background); 
 
 /*!
 *   @brief Triggers the bike signal animation to change
@@ -86,12 +102,21 @@ static void led_strip_thread(void *parameters){
         break; 
 
         case(BIKE_LED_SIGNAL_TURN_LEFT):
-        swipe_left(); 
+        swipe_left(RGBW_ORANGE, RGBW_WHITE); 
         break; 
 
-        case(BIKE_LED_SIGNAL_TURN_RIGHT):
-        swipe_right(); 
+        case(BIKE_LED_SIGNAL_TURN_LEFT_STOP):
+        swipe_left(RGBW_ORANGE, RGBW_RED); 
         break; 
+        
+        case(BIKE_LED_SIGNAL_TURN_RIGHT):
+        swipe_right(RGBW_ORANGE, RGBW_WHITE); 
+        break; 
+        
+        case(BIKE_LED_SIGNAL_TURN_RIGHT_STOP):
+        swipe_right(RGBW_ORANGE, RGBW_RED); 
+        break; 
+        
         default: 
         break;
         }
@@ -102,8 +127,7 @@ static void led_strip_thread(void *parameters){
 *   @brief Sets whole strip white. 
 */
 static inline void draw_white(void){
-    for(int n = 0; n < NUM_STRIP_LEDS; n++)
-        led_strip.setPixelColor(n, 0, 0, 0, 70);
+    fill_col_nodraw(RGBW_WHITE); 
 
     led_strip.show(); 
     // We sit and wait until we recieve the command to start looking for the next animation
@@ -112,25 +136,33 @@ static inline void draw_white(void){
 }
 
 /*!
+*   @brief Helper function that sets the entire strip to a specific color
+*/
+static inline void fill_col_nodraw(rgbw_t col){
+    for(int n = 0; n < NUM_STRIP_LEDS; n++)
+        led_strip.setPixelColor(n, col.r, col.g, col.b, col.w); 
+}
+
+/*!
 *   @brief Helper function that helps with signaling the stuff.  
 */
-static inline void signal_orange(uint16_t k){
+static inline void signal_helper_right(uint16_t k, rgbw_t foreground, rgbw_t background){
     
-    for(int n = 0; n < NUM_STRIP_LEDS; n+= 20)
-        led_strip.setPixelColor((n + k) % NUM_STRIP_LEDS, 255, 151, 0, 0);
+    for(int n = 0; n < NUM_STRIP_LEDS; n+= 14)
+        led_strip.setPixelColor((n + k) % NUM_STRIP_LEDS, foreground.r, foreground.g, foreground.b, foreground.w);
     
-    for(int n = 20; n < NUM_STRIP_LEDS; n+= 20)
-        led_strip.setPixelColor((n + k) % NUM_STRIP_LEDS, 0, 0, 0, 70);
+    for(int n = 14; n < NUM_STRIP_LEDS; n+= 14)
+        led_strip.setPixelColor((n + k) % NUM_STRIP_LEDS, background.r, background.g, background.b, background.w); 
     
     led_strip.show(); 
 }
+
 
 /*!
 *   @brief Sets whole strip to red
 */
 static inline void stop(void){
-    for(int n = 0; n < NUM_STRIP_LEDS; n++)
-        led_strip.setPixelColor(n, 255, 0, 0, 20);
+    fill_col_nodraw(RGBW_RED);
 
     led_strip.show();
     // We sit and wait until we recieve the command to start looking for the next animation
@@ -141,16 +173,39 @@ static inline void stop(void){
 /*!
 *   @brief Helper function that allows us to see the strip to swipe left
 */
-static void swipe_left(void){
+static void swipe_left(rgbw_t forground, rgbw_t background){
+    fill_col_nodraw(background); 
+
+    fill_col_nodraw(background); 
     for(;;){
-        for(int n = NUM_STRIP_LEDS + 30; n >= 30; n--){
-            signal_orange(n); 
+        for(int n = NUM_STRIP_LEDS/2-1; n >= 0; n--){
+            led_strip.setPixelColor(n, forground.r, forground.g, forground.b, forground.w);
+            
             // If there is a trigger to change the animation
             if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 10)){
                 // Then we clear the flag and yeet out of this animation
                 bike_trigger_signal.clear(THREAD_SIGNAL_0); 
                 return;       
-            }
+            }  
+
+            led_strip.show(); 
+        }
+        
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 170)){
+            // Then we clear the flag and yeet out of this animation
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return;   
+        } 
+
+        // Fill back as default color
+        for(int n = NUM_STRIP_LEDS/2-1; n >= 0; n--)
+            led_strip.setPixelColor(n, background.r, background.g, background.b, background.w);
+        led_strip.show();
+
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 170)){
+            // Then we clear the flag and yeet out of this animation
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return;   
         }
     }
 }
@@ -158,14 +213,36 @@ static void swipe_left(void){
 /*!
 *   @brief Helper function that allows us to see the strip to swipe right
 */
-static void swipe_right(void){
-    for(int n = 0; n < NUM_STRIP_LEDS; n++){
-        signal_orange(n); 
-        // If there is a trigger to change the animation
-        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 10)){
+static void swipe_right(rgbw_t forground, rgbw_t background){
+    fill_col_nodraw(background); 
+    for(;;){
+        for(int n = NUM_STRIP_LEDS/2 - 1; n < NUM_STRIP_LEDS; n++){
+            led_strip.setPixelColor(n, forground.r, forground.g, forground.b, forground.w);
+            
+            // If there is a trigger to change the animation
+            if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 10)){
+                // Then we clear the flag and yeet out of this animation
+                bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+                return;       
+            }  
+            led_strip.show(); 
+        }
+
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 170)){
             // Then we clear the flag and yeet out of this animation
             bike_trigger_signal.clear(THREAD_SIGNAL_0); 
-            return;       
-        }    
+            return;   
+        }        
+
+        // Fill back as default color
+        for(int n = NUM_STRIP_LEDS/2 - 1; n < NUM_STRIP_LEDS; n++)
+            led_strip.setPixelColor(n, background.r, background.g, background.b, background.w);
+        led_strip.show();
+
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 170)){
+            // Then we clear the flag and yeet out of this animation
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return;   
+        }        
     }
 }
