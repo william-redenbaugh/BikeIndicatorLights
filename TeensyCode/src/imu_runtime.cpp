@@ -23,7 +23,6 @@ static void imu_thread(void *parameters){
 
     init_mpu6050(MPU6050_DEFAULT_I2C_ADDR, ACCELEROMETER_4G, GYRO_500_DEGREE_SECCOND); 
     for(;;){
-        os_thread_delay_ms(200);
-        //imu_data_raw raw_dat = get_latest_mpu6050_data(false); 
+        os_thread_delay_ms(200);       
     }
 }

@@ -1,12 +1,12 @@
 /*
 Author: William Redenbaugh
-Last Edit Date: 7/20/2020
+Last Edit Date: 7/3/2020
 */
 
 #include "hsv_rgb_conv.hpp"
 
-HsvColor RgbToHsv(rgb24 rgb);
-rgb24 HsvToRgb(HsvColor hsv);
+HsvColor RgbToHsv(RgbColor rgb);
+RgbColor HsvToRgb(HsvColor hsv);
 
 // CREDIT FOR HSV TO RGB CONVERSTION GOES TO THIS GUY: https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
 // STACKOVERFLOW POSTERS ARE OUR OVERLOARDS. 
@@ -18,33 +18,35 @@ rgb24 HsvToRgb(HsvColor hsv);
     @returns hsv struct. 
 */
 /**************************************************************************/
-HsvColor RgbToHsv(rgb24 rgb)
+HsvColor RgbToHsv(RgbColor rgb)
 {
     HsvColor hsv;
     unsigned char rgbMin, rgbMax;
 
-    rgbMin = rgb.red < rgb.green ? (rgb.red < rgb.blue ? rgb.red : rgb.blue) : (rgb.green < rgb.blue ? rgb.green : rgb.blue);
-    rgbMax = rgb.red > rgb.green ? (rgb.red > rgb.blue ? rgb.red : rgb.blue) : (rgb.green > rgb.blue ? rgb.green : rgb.blue);
+    rgbMin = rgb.r < rgb.g ? (rgb.r < rgb.b ? rgb.r : rgb.b) : (rgb.g < rgb.b ? rgb.g : rgb.b);
+    rgbMax = rgb.r > rgb.g ? (rgb.r > rgb.b ? rgb.r : rgb.b) : (rgb.g > rgb.b ? rgb.g : rgb.b);
 
     hsv.v = rgbMax;
-    if (hsv.v == 0){
+    if (hsv.v == 0)
+    {
         hsv.h = 0;
         hsv.s = 0;
         return hsv;
     }
 
     hsv.s = 255 * long(rgbMax - rgbMin) / hsv.v;
-    if (hsv.s == 0){
+    if (hsv.s == 0)
+    {
         hsv.h = 0;
         return hsv;
     }
 
-    if (rgbMax == rgb.red)
-        hsv.h = 0 + 43 * (rgb.green - rgb.blue) / (rgbMax - rgbMin);
-    else if (rgbMax == rgb.green)
-        hsv.h = 85 + 43 * (rgb.blue - rgb.red) / (rgbMax - rgbMin);
+    if (rgbMax == rgb.r)
+        hsv.h = 0 + 43 * (rgb.g - rgb.b) / (rgbMax - rgbMin);
+    else if (rgbMax == rgb.g)
+        hsv.h = 85 + 43 * (rgb.b - rgb.r) / (rgbMax - rgbMin);
     else
-        hsv.h = 171 + 43 * (rgb.red - rgb.green) / (rgbMax - rgbMin);
+        hsv.h = 171 + 43 * (rgb.r - rgb.g) / (rgbMax - rgbMin);
 
     return hsv;
 }
@@ -56,15 +58,16 @@ HsvColor RgbToHsv(rgb24 rgb)
     @returns rgb struct. 
 */
 /**************************************************************************/
-rgb24 HsvToRgb(HsvColor hsv)
+RgbColor HsvToRgb(HsvColor hsv)
 {
-    rgb24 rgb;
+    RgbColor rgb;
     unsigned char region, remainder, p, q, t;
 
-    if (hsv.s == 0){
-        rgb.red = hsv.v;
-        rgb.green = hsv.v;
-        rgb.blue = hsv.v;
+    if (hsv.s == 0)
+    {
+        rgb.r = hsv.v;
+        rgb.g = hsv.v;
+        rgb.b = hsv.v;
         return rgb;
     }
 
@@ -75,25 +78,26 @@ rgb24 HsvToRgb(HsvColor hsv)
     q = (hsv.v * (255 - ((hsv.s * remainder) >> 8))) >> 8;
     t = (hsv.v * (255 - ((hsv.s * (255 - remainder)) >> 8))) >> 8;
 
-    switch (region){
-    case 0:
-        rgb.red = hsv.v; rgb.green = t; rgb.blue = p;
-    break;
-    case 1:
-        rgb.red = q; rgb.green = hsv.v; rgb.blue = p;
-    break;
-    case 2:
-        rgb.red = p; rgb.green = hsv.v; rgb.blue = t;
-    break;
-    case 3:
-        rgb.red = p; rgb.green = q; rgb.blue = hsv.v;
-    break;
-    case 4:
-        rgb.red = t; rgb.green = p; rgb.blue = hsv.v;
-    break;
-    default:
-        rgb.red = hsv.v; rgb.green = p; rgb.blue = q;
-    break;
+    switch (region)
+    {
+        case 0:
+            rgb.r = hsv.v; rgb.g = t; rgb.b = p;
+            break;
+        case 1:
+            rgb.r = q; rgb.g = hsv.v; rgb.b = p;
+            break;
+        case 2:
+            rgb.r = p; rgb.g = hsv.v; rgb.b = t;
+            break;
+        case 3:
+            rgb.r = p; rgb.g = q; rgb.b = hsv.v;
+            break;
+        case 4:
+            rgb.r = t; rgb.g = p; rgb.b = hsv.v;
+            break;
+        default:
+            rgb.r = hsv.v; rgb.g = p; rgb.b = q;
+            break;
     }
 
     return rgb;
