@@ -1,5 +1,7 @@
 #include "imu_runtime.hpp"
 
+#include "led_strip_runtime.h"
+
 /*!
 *   @brief Statically allocated thread stack. 
 */
@@ -21,8 +23,18 @@ void setup_imu_runtime(void){
 */
 static void imu_thread(void *parameters){
 
-    init_mpu6050(MPU6050_DEFAULT_I2C_ADDR, ACCELEROMETER_4G, GYRO_500_DEGREE_SECCOND); 
+    init_mpu6050(MPU6050_DEFAULT_I2C_ADDR, ACCELEROMETER_16G, GYRO_500_DEGREE_SECCOND); 
     for(;;){
         os_thread_delay_ms(200);       
+        
+        imu_data_raw lat_data = get_latest_mpu6050_data(true);     
+        accel_data_g dat = translate_accel_raw_g(lat_data); 
+        
+        if(dat.a_x < -2.0){
+            trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP); 
+        }
+        else{
+            trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_WHITE);
+        }
     }
 }

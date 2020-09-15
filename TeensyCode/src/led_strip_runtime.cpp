@@ -47,6 +47,7 @@ typedef struct{
 static const rgbw_t RGBW_ORANGE =   {255, 151, 0, 0}; 
 static const rgbw_t RGBW_WHITE =    {0, 0, 0, 70}; 
 static const rgbw_t RGBW_RED =      {255, 0, 0, 20}; 
+static const rgbw_t RGBW_BLACK =    {0, 0, 0, 0}; 
 
 /*!
 *   @brief Function declarations 
@@ -56,7 +57,9 @@ void start_led_strip_runtime(void);
 static void led_strip_thread(void *parameters); 
 static inline void draw_white(void); 
 static inline void fill_col_nodraw(rgbw_t col); 
+static inline void fill_col_draw(rgbw_t col);
 static inline void stop(void);
+static void stop_fast(void); 
 static void swipe_left(rgbw_t foreground, rgbw_t background); 
 static void swipe_right(rgbw_t foreground, rgbw_t background); 
 
@@ -85,7 +88,7 @@ static void led_strip_thread(void *parameters){
         while(1)
             os_thread_delay_s(1);        
 
-    led_strip.setBrightness(20); 
+    led_strip.setBrightness(170); 
 
     // Sensor starts off doing nothing in theory
     draw_white(); 
@@ -96,6 +99,10 @@ static void led_strip_thread(void *parameters){
         case(BIKE_LED_SIGNAL_STOP):
         stop(); 
         break;
+
+        case(BIKE_LED_SIGNAL_STOP_FAST):
+        stop_fast(); 
+        break; 
 
         case(BIKE_LED_SIGNAL_WHITE):
         draw_white(); 
@@ -127,9 +134,8 @@ static void led_strip_thread(void *parameters){
 *   @brief Sets whole strip white. 
 */
 static inline void draw_white(void){
-    fill_col_nodraw(RGBW_WHITE); 
-
-    led_strip.show(); 
+    fill_col_draw(RGBW_WHITE); 
+ 
     // We sit and wait until we recieve the command to start looking for the next animation
     bike_trigger_signal.wait_notimeout(THREAD_SIGNAL_0);
     bike_trigger_signal.clear(THREAD_SIGNAL_0); 
@@ -141,6 +147,11 @@ static inline void draw_white(void){
 static inline void fill_col_nodraw(rgbw_t col){
     for(int n = 0; n < NUM_STRIP_LEDS; n++)
         led_strip.setPixelColor(n, col.r, col.g, col.b, col.w); 
+}
+
+static inline void fill_col_draw(rgbw_t col){
+    fill_col_nodraw(col); 
+    led_strip.show(); 
 }
 
 /*!
@@ -162,20 +173,37 @@ static inline void signal_helper_right(uint16_t k, rgbw_t foreground, rgbw_t bac
 *   @brief Sets whole strip to red
 */
 static inline void stop(void){
-    fill_col_nodraw(RGBW_RED);
+    fill_col_draw(RGBW_RED);
 
-    led_strip.show();
     // We sit and wait until we recieve the command to start looking for the next animation
     bike_trigger_signal.wait_notimeout(THREAD_SIGNAL_0);
     bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+}
+
+static void stop_fast(void){
+    for(;;){
+        fill_col_draw(RGBW_RED); 
+
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
+            // Then we clear the flag and yeet out of this animation
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return;       
+        }
+        
+        fill_col_draw(RGBW_BLACK);
+
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
+            // Then we clear the flag and yeet out of this animation
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return;       
+        } 
+    }
 }
 
 /*!
 *   @brief Helper function that allows us to see the strip to swipe left
 */
 static void swipe_left(rgbw_t forground, rgbw_t background){
-    fill_col_nodraw(background); 
-
     fill_col_nodraw(background); 
     for(;;){
         for(int n = NUM_STRIP_LEDS/2-1; n >= 0; n--){

@@ -27,16 +27,5 @@ void setup() {
 }
 
 void loop() {
-  os_thread_delay_s(3); 
-  trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP); 
-  os_thread_delay_s(3); 
-  trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_TURN_LEFT); 
-  os_thread_delay_s(3); 
-  trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_TURN_RIGHT); 
-  os_thread_delay_s(3); 
-  trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_TURN_LEFT_STOP); 
-  os_thread_delay_s(3); 
-  trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_TURN_RIGHT_STOP); 
-  os_thread_delay_s(3); 
-  trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_WHITE);
+  os_thread_delay_s(1);
 }
