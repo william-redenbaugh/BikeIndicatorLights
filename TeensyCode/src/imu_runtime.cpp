@@ -1,5 +1,7 @@
 #include "imu_runtime.hpp"
 
+#include "led_strip_runtime.h"
+
 /*!
 *   @brief Statically allocated thread stack. 
 */
@@ -21,9 +23,19 @@ void setup_imu_runtime(void){
 */
 static void imu_thread(void *parameters){
 
-    init_mpu6050(MPU6050_DEFAULT_I2C_ADDR, ACCELEROMETER_4G, GYRO_500_DEGREE_SECCOND); 
+    init_mpu6050(MPU6050_DEFAULT_I2C_ADDR, ACCELEROMETER_16G, GYRO_500_DEGREE_SECCOND); 
     for(;;){
-        os_thread_delay_ms(200);
-        //imu_data_raw raw_dat = get_latest_mpu6050_data(false); 
+        //os_thread_delay_ms(1000);       
+        
+        // We get 20 samples of data. 
+        imu_data_raw lat_data = get_latest_mpu6050_data_sampled(20);     
+        accel_data_g dat = translate_accel_raw_g(lat_data); 
+        
+        Serial.print(dat.a_x); 
+        Serial.print(" "); 
+        Serial.print(dat.a_y); 
+        Serial.print(" "); 
+        Serial.print(dat.a_z); 
+        Serial.println(" "); 
     }
 }
