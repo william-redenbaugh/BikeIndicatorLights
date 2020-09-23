@@ -57,5 +57,4 @@ static void battery_checking_periodic_func(void *parameters){
         battery_dead.signal(THREAD_SIGNAL_0); 
     else
         battery_dead.clear(THREAD_SIGNAL_0); 
-
 }
