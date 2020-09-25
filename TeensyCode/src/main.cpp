@@ -23,8 +23,6 @@
 // Battery checking runtime module
 #include "battery_checking_runtime.hpp"
 
-#include "HAL/SSD1351-OLED-DMA/SSD1351.h"
-
 void setup() {
   os_init();   
   Serial.begin(115200);
