@@ -25,7 +25,7 @@ static void imu_thread(void *parameters){
 
     init_mpu6050(MPU6050_DEFAULT_I2C_ADDR, ACCELEROMETER_16G, GYRO_500_DEGREE_SECCOND); 
     for(;;){
-        //os_thread_delay_ms(1000);       
+        os_thread_delay_ms(1000);       
         
         // We get 20 samples of data. 
         imu_data_raw lat_data = get_latest_mpu6050_data_sampled(20);     

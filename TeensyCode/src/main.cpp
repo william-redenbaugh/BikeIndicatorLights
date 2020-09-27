@@ -25,6 +25,7 @@
 
 void setup() {
   os_init();   
+  
   Serial.begin(115200);
 
   // Setting up the IMU
@@ -42,9 +43,11 @@ void setup() {
   // Setup message callbacks with the desired device. 
   message_callbacks_begin(&Serial1, 9600);
 
-  init_battery_checking_runtime(); 
+  // We want to periodically check the battery. 
+  init_battery_checking_runtime();
 }
 
 void loop() {
+
   os_thread_delay_s(1);
 }
