@@ -88,7 +88,7 @@ static void led_strip_thread(void *parameters){
         while(1)
             os_thread_delay_s(1);        
 
-    led_strip.setBrightness(10); 
+    led_strip.setBrightness(100); 
 
     // Sensor starts off doing nothing in theory
     
