@@ -1,4 +1,4 @@
-18994145987617749
+18994145992368927
 Battery
 BatteryHolder_Bulgin_BX0036_1xC
 Bulgin Battery Holder, BX0036, Battery Type C (https://www.bulgin.com/products/pub/media/bulgin/data/Battery_holders.pdf)
@@ -83028,15 +83028,15 @@ varistor SIOV
 2
 custom_footprints
 HM18_BLE
-
-
-0
-0
-0
-custom_footprints
-PinSocket_1x04_P2.54mm_Horizontal
 Through hole angled socket strip, 1x04, 2.54mm pitch, 8.51mm socket length, single row (from Kicad 4.0.7), script generated
 Through hole angled socket strip THT 1x04 2.54mm single row
 0
 4
 4
+custom_footprints
+PinHeader_1x08_P2.54mm_Vertical
+Through hole straight pin header, 1x08, 2.54mm pitch, single row
+Through hole pin header THT 1x08 2.54mm single row
+0
+8
+8
