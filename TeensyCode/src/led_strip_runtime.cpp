@@ -215,17 +215,11 @@ static void stop_fast(void){
     for(;;){
         fill_col_draw(RGBW_RED); 
 
-        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
-            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
-            return;       
-        }
+        os_thread_sleep_ms(100);
         
         fill_col_draw(RGBW_BLACK);
 
-        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
-            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
-            return;       
-        } 
+        os_thread_sleep_ms(100);
     }
 }
 
