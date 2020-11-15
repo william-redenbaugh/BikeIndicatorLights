@@ -25,6 +25,7 @@
 
 void setup() {
   os_init();   
+
   Serial.begin(115200);
 
   // Setting up the IMU
@@ -34,17 +35,18 @@ void setup() {
   start_led_strip_runtime();
 
   // Starting up our low priority work thread. 
-  setup_lwip_thread(); 
+  //setup_lwip_thread(); 
 
   // Start up the bluetooth module.    
-  start_hm18(&Serial1); 
+  //start_hm18(&Serial1); 
 
   // Setup message callbacks with the desired device. 
-  message_callbacks_begin(&Serial1, 9600);
+  //message_callbacks_begin(&Serial1, 9600);
 
-  init_battery_checking_runtime(); 
+  //init_battery_checking_runtime(); 
+  _os_yield(); 
 }
 
+// Nothing goes into here anymore. 
 void loop() {
-  os_thread_delay_s(1);
 }

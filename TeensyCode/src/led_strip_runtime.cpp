@@ -3,22 +3,22 @@
 /*!
 *   @brief Statically allocated thread stack. 
 */
-static uint32_t led_strip_thread_stack[8192]; 
+static uint32_t matrix_thread_stack[8192]; 
 
 /*!
 *   @brief Drawing and manipulation memory. 
 */
-static byte led_strip_drawing_memory[NUM_STRIP_LEDS * 4]; 
+static byte matrix_drawing_memory[NUM_STRIP_LEDS * 3]; 
 
 /*!
 *   @brief DMA memory buffer that we will use to write to the LEDs
 */
-static DMAMEM byte led_strip_display_memory[NUM_STRIP_LEDS * 16]; 
+static DMAMEM byte matrix_display_memory[NUM_STRIP_LEDS * 12]; 
 
 /*!
 *   @brief WS2812b strip manipulation object. 
 */  
-static WS2812Serial led_strip = WS2812Serial(NUM_STRIP_LEDS, led_strip_display_memory, led_strip_drawing_memory, STRIP_LED_GPIO, WS2812_GRBW);
+static WS2812Serial matrix = WS2812Serial(NUM_STRIP_LEDS, matrix_display_memory, matrix_drawing_memory, STRIP_LED_GPIO, WS2812_GRB);
 
 /*!
 *   @brief Next bike signal state. We employ the last-man-wins stratagy
@@ -45,28 +45,37 @@ typedef struct{
 *   @brief Some color definitions to keep handy. 
 */
 static const rgbw_t RGBW_ORANGE =   {255, 151, 0, 0}; 
-static const rgbw_t RGBW_WHITE =    {0, 0, 0, 70}; 
+static const rgbw_t RGBW_WHITE =    {100, 100, 100, 0}; 
 static const rgbw_t RGBW_RED =      {255, 0, 0, 20}; 
 static const rgbw_t RGBW_BLACK =    {0, 0, 0, 0}; 
 
 /*!
-*   @brief Function declarations 
+*   @brief General purpose function declarations 
 */
-extern void trigger_led_strip_bike_animation(bike_led_signal_state_t signal);
+extern void trigger_matrix_bike_animation(bike_led_signal_state_t signal);
 void start_led_strip_runtime(void);
-static void led_strip_thread(void *parameters); 
+static void matrix_thread(void *parameters); 
+static void start_led_strip(void); 
+static void update_matrix(void); 
+static void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b); 
 static inline void draw_white(void); 
 static inline void fill_col_nodraw(rgbw_t col); 
 static inline void fill_col_draw(rgbw_t col);
-static inline void stop(void);
+
+/*!
+*   @brief Animation function declarations
+*/
+static inline void stop(void); 
 static void stop_fast(void); 
-static void swipe_left(rgbw_t foreground, rgbw_t background); 
-static void swipe_right(rgbw_t foreground, rgbw_t background); 
+static void turn_left(void); 
+static void turn_right(void); 
+static void turn_left_stop(void); 
+static void turn_right_stop(void); 
 
 /*!
 *   @brief Triggers the bike signal animation to change
 */
-extern void trigger_led_strip_bike_animation(bike_led_signal_state_t signal){
+extern void trigger_matrix_bike_animation(bike_led_signal_state_t signal){
     next_bike_led_state = signal; 
     bike_trigger_signal.signal(THREAD_SIGNAL_0);    
 }
@@ -75,24 +84,23 @@ extern void trigger_led_strip_bike_animation(bike_led_signal_state_t signal){
 *   @brief Strip generation constructor. 
 */
 void start_led_strip_runtime(void){
-    os_add_thread(&led_strip_thread, NULL, sizeof(led_strip_thread_stack), led_strip_thread_stack); 
+    os_add_thread(&matrix_thread, NULL, sizeof(matrix_thread_stack), matrix_thread_stack); 
 }
 
 /*!
 *   @brief Strip thread function
 */
-static void led_strip_thread(void *parameters){
+static void matrix_thread(void *parameters){
     
     // If there is an issue with setting up the led strip, we just sleep the thread. 
-    if(!led_strip.begin())
+    if(!matrix.begin())
         while(1)
             os_thread_delay_s(1);        
 
-    led_strip.setBrightness(10); 
+    matrix.setBrightness(8); 
 
     // Sensor starts off doing nothing in theory
-    
-    swipe_left(RGBW_ORANGE, RGBW_RED); 
+    stop_fast();
 
     // Runtime loop
     for(;;){
@@ -110,19 +118,19 @@ static void led_strip_thread(void *parameters){
         break; 
 
         case(BIKE_LED_SIGNAL_TURN_LEFT):
-        swipe_left(RGBW_ORANGE, RGBW_WHITE); 
+        turn_left(); 
         break; 
 
         case(BIKE_LED_SIGNAL_TURN_LEFT_STOP):
-        swipe_left(RGBW_ORANGE, RGBW_RED); 
+        turn_left_stop(); 
         break; 
         
         case(BIKE_LED_SIGNAL_TURN_RIGHT):
-        swipe_right(RGBW_ORANGE, RGBW_WHITE); 
+        turn_right(); 
         break; 
         
         case(BIKE_LED_SIGNAL_TURN_RIGHT_STOP):
-        swipe_right(RGBW_ORANGE, RGBW_RED); 
+        turn_right_stop(); 
         break; 
         
         default: 
@@ -131,6 +139,41 @@ static void led_strip_thread(void *parameters){
 
         os_thread_delay_ms(10); 
     }
+}
+
+/*!
+*   @brief Starts up the matrix manipulation module
+*/
+static void start_led_strip(void){
+    // If there is an issue with setting up the led strip, we just sleep the thread. 
+    if(!matrix.begin())
+        while(1)
+            os_thread_delay_s(1);        
+}
+
+/*!
+*   @brief Updates the matrix.
+*/
+static void update_matrix(void){
+    matrix.show(); 
+}
+
+/*!
+*   @brief Allows us to set the values of the matrix on a cartesiean axis. 
+*   @param uint8_t x position
+*   @param uint8_t y position
+*   @param uint8_t r color value
+*   @param uint8_t g color value 
+*   @param uint8_t b color value 
+*/
+static void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b){
+    if(x >= 8 || y >= 16)
+        return; 
+
+    // Set the position
+    int pos = 127-(8 * y + x);
+    // Write to pixel buffer. 
+    matrix.setPixel(pos, r, g, b); 
 }
 
 /*!
@@ -149,28 +192,13 @@ static inline void draw_white(void){
 */
 static inline void fill_col_nodraw(rgbw_t col){
     for(int n = 0; n < NUM_STRIP_LEDS; n++)
-        led_strip.setPixelColor(n, col.r, col.g, col.b, col.w); 
+        matrix.setPixelColor(n, col.r, col.g, col.b); 
 }
 
 static inline void fill_col_draw(rgbw_t col){
     fill_col_nodraw(col); 
-    led_strip.show(); 
+    matrix.show(); 
 }
-
-/*!
-*   @brief Helper function that helps with signaling the stuff.  
-*/
-static inline void signal_helper_right(uint16_t k, rgbw_t foreground, rgbw_t background){
-    
-    for(int n = 0; n < NUM_STRIP_LEDS; n+= 14)
-        led_strip.setPixelColor((n + k) % NUM_STRIP_LEDS, foreground.r, foreground.g, foreground.b, foreground.w);
-    
-    for(int n = 14; n < NUM_STRIP_LEDS; n+= 14)
-        led_strip.setPixelColor((n + k) % NUM_STRIP_LEDS, background.r, background.g, background.b, background.w); 
-    
-    led_strip.show(); 
-}
-
 
 /*!
 *   @brief Sets whole strip to red
@@ -188,7 +216,6 @@ static void stop_fast(void){
         fill_col_draw(RGBW_RED); 
 
         if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
-            // Then we clear the flag and yeet out of this animation
             bike_trigger_signal.clear(THREAD_SIGNAL_0); 
             return;       
         }
@@ -196,7 +223,6 @@ static void stop_fast(void){
         fill_col_draw(RGBW_BLACK);
 
         if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
-            // Then we clear the flag and yeet out of this animation
             bike_trigger_signal.clear(THREAD_SIGNAL_0); 
             return;       
         } 
@@ -204,62 +230,31 @@ static void stop_fast(void){
 }
 
 /*!
-*   @brief Helper function that allows us to see the strip to swipe left
+*   @brief Animation that let's us turn left
 */
-static void swipe_left(rgbw_t forground, rgbw_t background){
-    fill_col_nodraw(background); 
+static void turn_left(void){
     for(;;){
-        for(int n = NUM_STRIP_LEDS/2-1; n >= 0; n--){
-            led_strip.setPixelColor(n, forground.r, forground.g, forground.b, forground.w);
-            
-            // If there is a trigger to change the animation
-            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 10))
-                return;   
-
-            led_strip.show(); 
-        }
         
-        if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 170))
-            return; 
-
-        // Fill back as default color
-        for(int n = NUM_STRIP_LEDS/2-1; n >= 0; n--)
-            led_strip.setPixelColor(n, background.r, background.g, background.b, background.w);
-        led_strip.show();
-
-        if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 170))
-            return;   
     }
 }
 
 /*!
-*   @brief Helper function that allows us to see the strip to swipe right
+*   @brief Animation that let's us turn right
 */
-static void swipe_right(rgbw_t forground, rgbw_t background){
-    fill_col_nodraw(background); 
-    for(;;){
-        for(int n = NUM_STRIP_LEDS/2 - 1; n < NUM_STRIP_LEDS; n++){
-            led_strip.setPixelColor(n, forground.r, forground.g, forground.b, forground.w);
-            
-            // If there is a trigger to change the animation
-            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 10))
-                return;       
-     
-            led_strip.show(); 
-        }
+static void turn_right(void){
 
-        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 170)){
-            // Then we clear the flag and yeet out of this animation
-            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
-            return;   
-        }        
+}
 
-        // Fill back as default color
-        for(int n = NUM_STRIP_LEDS/2 - 1; n < NUM_STRIP_LEDS; n++)
-            led_strip.setPixelColor(n, background.r, background.g, background.b, background.w);
-        led_strip.show();
+/*!
+*   @brief Animation that let's us turn left while also signaling stop
+*/
+static void turn_left_stop(void){
 
-        if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 170))
-            return;   
-    }
+}
+
+/*!
+*   @brief Animation that let's us turn right while also signaling stop
+*/
+static void turn_right_stop(void){
+    
 }

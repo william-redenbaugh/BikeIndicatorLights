@@ -26,7 +26,7 @@ typedef enum{
 /*!
 *   @brief How many LEDs does the project have. 
 */
-const int NUM_STRIP_LEDS = 50; 
+const int NUM_STRIP_LEDS = 128;  
 
 /*!
 *   @brief What gpio pad is our LED strip on. 
