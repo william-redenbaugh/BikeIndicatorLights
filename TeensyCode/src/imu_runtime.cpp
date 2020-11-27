@@ -26,16 +26,15 @@ static void imu_thread(void *parameters){
     init_mpu6050(MPU6050_DEFAULT_I2C_ADDR, ACCELEROMETER_16G, GYRO_500_DEGREE_SECCOND); 
     for(;;){
         os_thread_sleep_ms(100);       
-        
         // We get 20 samples of data. 
         imu_data_raw lat_data = get_latest_mpu6050_data_sampled(20);     
         accel_data_g dat = translate_accel_raw_g(lat_data); 
-        
-        Serial.print(dat.a_x); 
-        Serial.print(" "); 
-        Serial.print(dat.a_y); 
-        Serial.print(" "); 
-        Serial.print(dat.a_z); 
-        Serial.println(" "); 
+
+        if(dat.a_z < -.5)
+            trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP);
+        else if(dat.a_z < -.9)
+            trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP_FAST); 
+        else
+            trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_WHITE);
     }
 }
