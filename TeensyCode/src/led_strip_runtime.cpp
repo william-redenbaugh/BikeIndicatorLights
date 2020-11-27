@@ -57,7 +57,7 @@ void start_led_strip_runtime(void);
 static void matrix_thread(void *parameters); 
 static void start_led_strip(void); 
 static void update_matrix(void); 
-static void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b); 
+static inline void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b); 
 static inline void draw_white(void); 
 static inline void fill_col_nodraw(rgbw_t col); 
 static inline void fill_col_draw(rgbw_t col);
@@ -75,7 +75,7 @@ static void turn_right_stop(void);
 /*!
 *   @brief Triggers the bike signal animation to change
 */
-extern void trigger_matrix_bike_animation(bike_led_signal_state_t signal){
+extern void trigger_led_strip_bike_animation(bike_led_signal_state_t signal){
     next_bike_led_state = signal; 
     bike_trigger_signal.signal(THREAD_SIGNAL_0);    
 }
@@ -100,7 +100,7 @@ static void matrix_thread(void *parameters){
     matrix.setBrightness(8); 
 
     // Sensor starts off doing nothing in theory
-    stop_fast();
+    turn_right();
 
     // Runtime loop
     for(;;){
@@ -166,7 +166,7 @@ static void update_matrix(void){
 *   @param uint8_t g color value 
 *   @param uint8_t b color value 
 */
-static void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b){
+static inline void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b){
     if(x >= 8 || y >= 16)
         return; 
 
@@ -215,11 +215,13 @@ static void stop_fast(void){
     for(;;){
         fill_col_draw(RGBW_RED); 
 
-        os_thread_sleep_ms(100);
+        if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 100))
+            return;  
         
         fill_col_draw(RGBW_BLACK);
 
-        os_thread_sleep_ms(100);
+        if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 100))
+            return;  
     }
 }
 
@@ -228,7 +230,20 @@ static void stop_fast(void){
 */
 static void turn_left(void){
     for(;;){
-        
+        for(int x = 7; x >= 0; x--){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 100, 100, 100); 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;  
+            update_matrix(); 
+        }
+        for(int x = 7; x >= 0; x--){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 255,165,0); 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;  
+            update_matrix(); 
+        }
     }
 }
 
@@ -236,19 +251,63 @@ static void turn_left(void){
 *   @brief Animation that let's us turn right
 */
 static void turn_right(void){
+    for(;;){
+        for(int x = 0; x < 8; x++){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 100, 100, 100); 
 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;     
+            update_matrix(); 
+        }
+        for(int x = 0; x < 8; x++){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 255,165,0); 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;  
+            update_matrix(); 
+        }
+    }
 }
 
 /*!
 *   @brief Animation that let's us turn left while also signaling stop
 */
 static void turn_left_stop(void){
-
+    for(int x = 7; x >= 0; x--){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 250, 0, 0); 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;  
+            update_matrix(); 
+        }
+        for(int x = 7; x >= 0; x--){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 255,165,0); 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;  
+            update_matrix(); 
+        }
 }
 
 /*!
 *   @brief Animation that let's us turn right while also signaling stop
 */
 static void turn_right_stop(void){
-    
+    for(;;){
+        for(int x = 0; x < 8; x++){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 250, 0, 0); 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;  
+            update_matrix(); 
+        }
+        for(int x = 0; x < 8; x++){
+            for(int y = 0; y < 16; y++)
+                set_matrix(x, y, 255,165,0); 
+            if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 50))
+                return;  
+            update_matrix(); 
+        }
+    }
 }

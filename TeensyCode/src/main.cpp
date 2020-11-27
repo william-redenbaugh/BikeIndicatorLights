@@ -23,6 +23,21 @@
 // Battery checking runtime module
 #include "battery_checking_runtime.hpp"
 
+void testing_thread(void *parameters){
+
+  for(;;){
+    os_thread_sleep_ms(2000); 
+    trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_TURN_LEFT); 
+
+    os_thread_sleep_ms(2000); 
+    trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_TURN_RIGHT); 
+    
+    os_thread_sleep_ms(2000); 
+    trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_TURN_LEFT_STOP); 
+    
+  }
+}
+
 void setup() {
   os_init();   
 
@@ -33,6 +48,8 @@ void setup() {
 
   // Setting up the led strip
   start_led_strip_runtime();
+
+  os_add_thread(&testing_thread, NULL, -1, NULL); 
 
   // Starting up our low priority work thread. 
   //setup_lwip_thread(); 
