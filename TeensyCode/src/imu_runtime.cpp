@@ -29,10 +29,10 @@ static void imu_thread(void *parameters){
         // We get 20 samples of data. 
         imu_data_raw lat_data = get_latest_mpu6050_data_sampled(20);     
         accel_data_g dat = translate_accel_raw_g(lat_data); 
-
-        if(dat.a_z < -.5)
+        
+        if(dat.a_z < -.1)
             trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP);
-        else if(dat.a_z < -.9)
+        else if(dat.a_z < -.3)
             trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP_FAST); 
         else
             trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_WHITE);
