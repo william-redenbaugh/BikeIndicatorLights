@@ -32,7 +32,7 @@ static void imu_thread(void *parameters){
         
         if(dat.a_z < -.1)
             trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP);
-        else if(dat.a_z < -.3)
+        else if(dat.a_z < -.2)
             trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_STOP_FAST); 
         else
             trigger_led_strip_bike_animation(BIKE_LED_SIGNAL_WHITE);
