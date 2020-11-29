@@ -52,6 +52,7 @@ static const rgbw_t RGBW_BLACK =    {0, 0, 0, 0};
 /*!
 *   @brief General purpose function declarations 
 */
+bike_led_signal_state_t current_matrix_bike_animation(void); 
 extern void trigger_matrix_bike_animation(bike_led_signal_state_t signal);
 void start_led_strip_runtime(void);
 static void matrix_thread(void *parameters); 
@@ -59,18 +60,29 @@ static void start_led_strip(void);
 static void update_matrix(void); 
 static inline void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b); 
 static inline void draw_white(void); 
+static inline void draw_neutral(void); 
 static inline void fill_col_nodraw(rgbw_t col); 
 static inline void fill_col_draw(rgbw_t col);
 
 /*!
 *   @brief Animation function declarations
 */
+
 static inline void stop(void); 
 static void stop_fast(void); 
 static void turn_left(void); 
 static void turn_right(void); 
 static void turn_left_stop(void); 
 static void turn_right_stop(void); 
+
+
+/*!
+*   @return The current matrix bike animation
+*/
+bike_led_signal_state_t current_matrix_bike_animation(void){
+    return next_bike_led_state;
+}
+
 
 /*!
 *   @brief Triggers the bike signal animation to change
@@ -114,7 +126,8 @@ static void matrix_thread(void *parameters){
         break; 
 
         case(BIKE_LED_SIGNAL_WHITE):
-        draw_white(); 
+        //draw_white(); 
+        draw_neutral(); 
         break; 
 
         case(BIKE_LED_SIGNAL_TURN_LEFT):
@@ -181,10 +194,30 @@ static inline void set_matrix(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_
 */
 static inline void draw_white(void){
     fill_col_draw(RGBW_WHITE); 
- 
-    // We sit and wait until we recieve the command to start looking for the next animation
-    bike_trigger_signal.wait_notimeout(THREAD_SIGNAL_0);
+    
+    bike_trigger_signal.wait_notimeout(THREAD_SIGNAL_0); 
     bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+}
+
+static inline void draw_neutral(void){
+    fill_col_draw(RGBW_WHITE); 
+
+    for(int h = 0; h < 255; h+= 2){
+        
+        for(int n = 0; n < 16; n++){
+            HsvColor col_hsv = {h + n * 3, 240, 155};  
+            RgbColor col_rgb = HsvToRgb(col_hsv); 
+        
+            set_matrix(0, n, col_rgb.r, col_rgb.g, col_rgb.b); 
+            set_matrix(7, n, col_rgb.r, col_rgb.g, col_rgb.b);         
+        }
+        update_matrix(); 
+
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 10)){
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return; 
+        }
+    }
 }
 
 /*!
@@ -215,13 +248,17 @@ static void stop_fast(void){
     for(;;){
         fill_col_draw(RGBW_RED); 
 
-        if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 100))
-            return;  
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return; 
+        }
         
-        fill_col_draw(RGBW_BLACK);
+        fill_col_draw(RGBW_WHITE); 
 
-        if(bike_trigger_signal.wait_n_clear(THREAD_SIGNAL_0, 100))
-            return;  
+        if(bike_trigger_signal.wait(THREAD_SIGNAL_0, 100)){
+            bike_trigger_signal.clear(THREAD_SIGNAL_0); 
+            return; 
+        }
     }
 }
 
