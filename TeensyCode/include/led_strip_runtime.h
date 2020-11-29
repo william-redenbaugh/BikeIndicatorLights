@@ -35,5 +35,6 @@ const int STRIP_LED_GPIO = 20;
 
 void start_led_strip_runtime(void); 
 extern void trigger_led_strip_bike_animation(bike_led_signal_state_t signal);
+bike_led_signal_state_t current_matrix_bike_animation(void);
 
 #endif
